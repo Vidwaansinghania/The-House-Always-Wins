@@ -1,0 +1,13 @@
+# Collected filings and everything built from them. Code only in the repository.
+data/
+digests/
+infographics/
+runs/
+
+# Points output at another folder on your machine
+home.txt
+
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

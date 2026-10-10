@@ -1,0 +1,768 @@
+<title>The House Always Wins</title>
+<style>
+:root {
+  color-scheme: dark;
+  /* Amber Ledger palette, dark only by design */
+  --ground: #000000;
+  --panel: #14110F;
+  --panel-2: #1A1714;
+  --hair: #2A2724;
+  --rule: #232019;
+  --head: #F5F3EF;
+  --body: #DCD7CF;
+  --muted: #8C857C;
+  --amber: #E0A73D;
+  /* chart marks, stepped into the dark band and validated on --panel */
+  --mark: #c98500;
+  --buy: #26A69A;
+  --sell: #E0645A;
+  --rest: #4A443D;
+  --limit: #d03b3b;
+  --serif: "Tiempos Headline", Georgia, "Times New Roman", serif;
+  --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+html, body { background: var(--ground); color: var(--body); }
+body { font: 14px/1.55 var(--sans); }
+a { color: var(--amber); }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 44px 28px 72px; }
+
+.mast { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 28px; align-items: end; padding-bottom: 28px; border-bottom: 1px solid var(--hair); }
+.eyebrow { font: 600 11px/1.3 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 0; }
+h1 { font: 400 clamp(42px, 6.4vw, 80px)/.95 var(--serif); color: var(--head); margin: 14px 0 16px; letter-spacing: -.015em; text-wrap: balance; }
+h1 em { color: var(--amber); }
+.dek { max-width: 64ch; margin: 0; color: var(--body); font-size: 15px; }
+
+.filter { display: flex; flex-direction: column; gap: 8px; }
+.seg { display: inline-flex; border: 1px solid var(--hair); background: var(--panel); }
+.seg button { font: 600 13px/1 var(--sans); color: var(--body); background: transparent; border: 0; padding: 10px 16px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--hair); }
+.seg button[aria-pressed="true"] { background: var(--amber); color: #120E08; }
+.seg button:hover:not([aria-pressed="true"]) { background: var(--panel-2); }
+.seg button:focus-visible, .mark:focus-visible, th button:focus-visible, input:focus-visible { outline: 2px solid var(--head); outline-offset: 2px; }
+
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; background: var(--hair); border: 1px solid var(--hair); margin: 28px 0 16px; }
+.kpi { background: var(--panel); padding: 18px 20px 16px; display: flex; flex-direction: column; gap: 4px; }
+.kpi .l { color: var(--muted); font-size: 12px; }
+.kpi .v { font: 600 clamp(22px, 2.4vw, 32px)/1.1 var(--sans); color: var(--amber); overflow-wrap: anywhere; }
+.kpi .s { color: var(--body); font-size: 12px; }
+
+.grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+.panel { background: var(--panel); border: 1px solid var(--hair); padding: 20px 22px 18px; min-width: 0; }
+.s12 { grid-column: span 12; } .s8 { grid-column: span 8; } .s7 { grid-column: span 7; }
+.s6 { grid-column: span 6; } .s5 { grid-column: span 5; } .s4 { grid-column: span 4; }
+.panel h2 { font: 400 23px/1.2 var(--serif); color: var(--head); margin: 6px 0 4px; text-wrap: balance; }
+.panel .sub { color: var(--muted); font-size: 12.5px; margin: 0 0 14px; max-width: 72ch; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--body); margin: 0 0 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.sw.dot { border-radius: 50%; }
+.sw.tick { width: 2px; height: 12px; border-radius: 0; background: var(--head); }
+.sw.faded { opacity: .38; }
+.chart { width: 100%; }
+.chart svg { display: block; overflow: visible; }
+
+svg text { font-family: var(--sans); }
+.t-head { fill: var(--head); font-size: 13px; }
+.t-body { fill: var(--body); font-size: 12px; }
+.t-muted { fill: var(--muted); font-size: 11px; }
+.t-num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.gridline { stroke: var(--rule); stroke-width: 1; }
+.baseline { stroke: var(--hair); stroke-width: 1; }
+.mark { outline: none; }
+.mark:hover { filter: brightness(1.2); }
+
+.share-stat { font: 400 22px/1.25 var(--serif); color: var(--head); margin: 2px 0 16px; text-wrap: balance; }
+.share-stat b { font-family: var(--sans); font-weight: 600; color: var(--amber); }
+
+.shared { display: grid; gap: 12px; }
+.shared .tk { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-top: 1px solid var(--rule); }
+.shared .tk:first-child { border-top: 0; padding-top: 0; }
+.shared .sym { font: 600 20px/1.1 var(--mono); color: var(--amber); }
+.shared .who { font-size: 12.5px; color: var(--body); }
+.shared .who div + div { margin-top: 3px; }
+.shared .who .m { color: var(--muted); }
+.empty { color: var(--muted); font-size: 13px; }
+
+.tools { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.tools input { font: 13px var(--sans); color: var(--head); background: var(--panel-2); border: 1px solid var(--hair); padding: 8px 10px; min-width: 240px; }
+.tools .count { color: var(--muted); font-size: 12px; }
+.table-wrap { overflow: auto; max-height: 520px; border: 1px solid var(--rule); }
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+thead th { position: sticky; top: 0; background: #1E1A17; text-align: left; font-weight: 600; color: var(--muted); white-space: nowrap; padding: 0; }
+th button { font: inherit; color: inherit; background: none; border: 0; padding: 9px 10px; cursor: pointer; width: 100%; text-align: inherit; }
+th button[data-dir="asc"]::after { content: " \2191"; color: var(--amber); }
+th button[data-dir="desc"]::after { content: " \2193"; color: var(--amber); }
+td { padding: 7px 10px; border-top: 1px solid var(--rule); color: var(--body); white-space: nowrap; }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+td.asset { white-space: normal; min-width: 220px; }
+tbody tr:nth-child(even) td { background: var(--panel-2); }
+.pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 3px; border: 1px solid var(--hair); color: var(--head); }
+.pill i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
+
+.notes { margin-top: 28px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; color: var(--muted); font-size: 12.5px; border-top: 1px solid var(--hair); padding-top: 22px; }
+.notes h3 { font: 600 11px/1.3 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--body); margin: 0 0 8px; }
+.notes p { margin: 0; max-width: 60ch; }
+
+#tip { position: fixed; z-index: 20; pointer-events: none; background: #0A0908; border: 1px solid var(--hair); padding: 8px 11px; font-size: 12px; color: var(--body); max-width: 300px; box-shadow: 0 8px 28px rgba(0,0,0,.65); }
+#tip .tv { font: 600 14px/1.3 var(--sans); color: var(--head); }
+#tip .tl { display: flex; align-items: center; gap: 7px; margin-top: 2px; }
+#tip .tk { width: 12px; height: 2px; flex: none; }
+
+@media (max-width: 960px) {
+  .s8, .s7, .s6, .s5, .s4 { grid-column: span 12; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mast { grid-template-columns: 1fr; }
+  .notes { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <div>
+      <p class="eyebrow">STOCK Act periodic transaction reports &middot; House Clerk and Senate eFD</p>
+      <h1>The House Always <em>Wins</em></h1>
+      <p class="dek">Every trade in the congressional disclosure reports filed __FILED_SPAN__, read from the House Clerk's PDFs and the Senate's eFD site. Trades are reported in dollar brackets, so every value here is a range.</p>
+    </div>
+    <div class="filter">
+      <span class="eyebrow">Chamber</span>
+      <div class="seg" role="group" aria-label="Filter by chamber">
+        <button type="button" data-ch="All" aria-pressed="true">Both</button>
+        <button type="button" data-ch="House" aria-pressed="false">House</button>
+        <button type="button" data-ch="Senate" aria-pressed="false">Senate</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="kpis" id="kpis" aria-label="Summary"></section>
+
+  <div class="grid">
+    <section class="panel s8">
+      <p class="eyebrow">Who traded</p>
+      <h2>Trades per politician</h2>
+      <p class="sub">Each bar counts the trades in that member's reports, split into buys and sells. Partial sales count as sells.</p>
+      <div class="legend"><span><i class="sw" style="background:var(--buy)"></i>Buy</span><span><i class="sw" style="background:var(--sell)"></i>Sell</span></div>
+      <div class="chart" id="c-who"></div>
+    </section>
+
+    <section class="panel s4">
+      <p class="eyebrow">Concentration</p>
+      <h2>Share of all trades</h2>
+      <p class="share-stat" id="share-stat"></p>
+      <div class="chart" id="c-share"></div>
+    </section>
+
+    <section class="panel s12">
+      <p class="eyebrow">Timing</p>
+      <h2>When the trades happened, and when they were reported</h2>
+      <p class="sub">Dots sit on the trade date; a bigger dot means more trades that day. The white tick is the filing date, and the faint line between them is the wait before the public could see the trade.</p>
+      <div class="legend"><span><i class="sw dot" style="background:var(--buy)"></i>Buy</span><span><i class="sw dot" style="background:var(--sell)"></i>Sell</span><span><i class="sw tick"></i>Report filed</span></div>
+      <div class="chart" id="c-cal"></div>
+    </section>
+
+    <section class="panel s7">
+      <p class="eyebrow">Money</p>
+      <h2>Disclosed value, sold against bought</h2>
+      <p class="sub">The solid bar runs to the sum of each trade's lowest possible amount; the faded bar extends to the sum of the highest. The true figure sits somewhere in between.</p>
+      <div class="legend"><span><i class="sw" style="background:var(--sell)"></i>Sold</span><span><i class="sw" style="background:var(--buy)"></i>Bought</span><span><i class="sw faded" style="background:var(--body)"></i>Upper end of the brackets</span></div>
+      <div class="chart" id="c-value"></div>
+    </section>
+
+    <section class="panel s5">
+      <p class="eyebrow">Brackets</p>
+      <h2>How big the trades were</h2>
+      <p class="sub">Filers tick one of the STOCK Act's fixed amount brackets instead of giving an exact figure.</p>
+      <div class="chart" id="c-brackets"></div>
+    </section>
+
+    <section class="panel s6">
+      <p class="eyebrow">Reporting lag</p>
+      <h2>Days from trade to filing</h2>
+      <p class="sub">The STOCK Act allows 45 days from the trade. Trades past the line are late.</p>
+      <div class="legend"><span><i class="sw" style="background:var(--mark)"></i>Trades</span><span><i class="sw" style="background:var(--limit)"></i>Filed late</span></div>
+      <div class="chart" id="c-lag"></div>
+    </section>
+
+    <section class="panel s6">
+      <p class="eyebrow">Accounts</p>
+      <h2>Whose account made the trade</h2>
+      <p class="sub">Reports name the owner: the member, a spouse (SP), a joint account (JT) or a dependent child (DC).</p>
+      <div class="chart" id="c-owner"></div>
+    </section>
+
+    <section class="panel s7">
+      <p class="eyebrow">Tickers</p>
+      <h2>Largest positions by ticker</h2>
+      <p class="sub">The ten tickers with the most disclosed value, buys and sells combined. Bonds and private holdings without a ticker are left out.</p>
+      <div class="legend"><span><i class="sw" style="background:var(--mark)"></i>Lowest possible total</span><span><i class="sw faded" style="background:var(--mark)"></i>Highest possible total</span></div>
+      <div class="chart" id="c-tickers"></div>
+    </section>
+
+    <section class="panel s5">
+      <p class="eyebrow">Overlap</p>
+      <h2>Tickers more than one politician traded</h2>
+      <p class="sub">Same stock, different members, in the same batch of reports.</p>
+      <div class="shared" id="c-shared"></div>
+    </section>
+
+    <section class="panel s12">
+      <p class="eyebrow">Every trade</p>
+      <h2>The full list</h2>
+      <div class="tools">
+        <input type="search" id="q" placeholder="Search politician, ticker or asset" aria-label="Search trades">
+        <span class="count" id="count"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="thead"></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <footer class="notes">
+    <div>
+      <h3>Sources</h3>
+      <p>House periodic transaction reports from the Clerk's public filing index (disclosures-clerk.house.gov) and Senate reports from efdsearch.senate.gov. Page built __BUILT__ by The House Always Wins.</p>
+    </div>
+    <div>
+      <h3>Reading the numbers</h3>
+      <p>Amounts are ranges such as $1,001 to $15,000. Totals add up the low ends and the high ends separately. Trade dates run __TRADE_SPAN__. Paper filings, which are scanned images, are not included.</p>
+    </div>
+    <div>
+      <h3>What this is not</h3>
+      <p>A disclosure shows that a trade happened and was reported. It says nothing about why, and it is not evidence of wrongdoing. Many of these accounts are run by advisers.</p>
+    </div>
+  </footer>
+</div>
+
+<div id="tip" hidden></div>
+
+<script>
+const RAW = __DATA__;
+
+const TRADES = RAW.map(r => ({
+  ch: r[0] === "H" ? "House" : "Senate",
+  pol: r[1], party: r[2], seat: r[3], ticker: r[4], asset: r[5], atype: r[6],
+  side: r[7] === "B" ? "Buy" : r[7] === "X" ? "Exchange" : "Sell",
+  partial: r[7] === "P",
+  tdate: r[8], fdate: r[9], lo: r[10], hi: r[11],
+  owner: r[12] === "Child" ? "Dependent Child" : r[12],
+  lag: r[13], url: r[14],
+}));
+
+const state = { ch: "All", sort: { key: "fdate", dir: "desc" }, q: "" };
+const NS = "http://www.w3.org/2000/svg";
+const $ = s => document.querySelector(s);
+
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function txt(parent, x, y, s, cls, anchor) {
+  const t = el("text", { x, y, class: cls, "text-anchor": anchor || "start" }, parent);
+  t.textContent = s;
+  return t;
+}
+function svgIn(id, height, label) {
+  const box = document.getElementById(id);
+  const width = Math.max(280, box.clientWidth);
+  box.replaceChildren();
+  const svg = el("svg", { viewBox: `0 0 ${width} ${height}`, width, height, role: "img", "aria-label": label }, box);
+  return { svg, width };
+}
+
+const money = n => {
+  if (n >= 1e6) { const v = n / 1e6; return "$" + (v >= 10 ? Math.round(v) : +v.toFixed(1)) + "M"; }
+  if (n >= 1e3) return "$" + Math.round(n / 1e3) + "K";
+  return "$" + n;
+};
+const range = (lo, hi) => `${money(lo)}–${money(hi)}`;
+const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+const day = s => new Date(s + "T00:00:00Z");
+const fmtDay = s => day(s).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+const shortName = p => { const bits = p.replace(/,? Jr\.?$/, "").split(" "); return bits[bits.length - 1]; };
+const seatLabel = t => t.ch === "House" ? `${t.seat.slice(0, 2)}-${t.seat.slice(2)}` : t.seat;
+const color = v => `var(--${v})`;
+
+// Rounded data-end bars: rounded only on the ends that are not on the baseline.
+function hbar(x, y, w, h, roundLeft, roundRight) {
+  if (w <= 0) return "";
+  const r = Math.min(4, w / 2, h / 2), L = roundLeft ? r : 0, R = roundRight ? r : 0;
+  return `M${x + L},${y}H${x + w - R}` +
+    (R ? `A${R},${R} 0 0 1 ${x + w},${y + R}V${y + h - R}A${R},${R} 0 0 1 ${x + w - R},${y + h}` : `V${y + h}`) +
+    `H${x + L}` +
+    (L ? `A${L},${L} 0 0 1 ${x},${y + h - L}V${y + L}A${L},${L} 0 0 1 ${x + L},${y}` : `V${y}`) + "Z";
+}
+function vbar(x, y, w, h) {
+  if (h <= 0) return "";
+  const r = Math.min(4, w / 2, h);
+  return `M${x},${y + h}V${y + r}A${r},${r} 0 0 1 ${x + r},${y}H${x + w - r}A${r},${r} 0 0 1 ${x + w},${y + r}V${y + h}Z`;
+}
+
+// Tooltip: value first, label second. Content goes in through textContent.
+const tip = $("#tip");
+function bindTip(node, value, lines, key) {
+  node.setAttribute("tabindex", "0");
+  node.classList.add("mark");
+  const show = (x, y) => {
+    tip.replaceChildren();
+    const v = document.createElement("div");
+    v.className = "tv"; v.textContent = value; tip.appendChild(v);
+    (Array.isArray(lines) ? lines : [lines]).forEach((line, i) => {
+      const row = document.createElement("div");
+      row.className = "tl";
+      if (i === 0 && key) { const k = document.createElement("i"); k.className = "tk"; k.style.background = key; row.appendChild(k); }
+      row.appendChild(document.createTextNode(line));
+      tip.appendChild(row);
+    });
+    tip.hidden = false;
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    let px = x + 14, py = y + 14;
+    if (px + w > innerWidth - 8) px = x - w - 14;
+    if (py + h > innerHeight - 8) py = y - h - 14;
+    tip.style.left = px + "px"; tip.style.top = py + "px";
+  };
+  node.addEventListener("pointermove", e => show(e.clientX, e.clientY));
+  node.addEventListener("pointerleave", () => { tip.hidden = true; });
+  node.addEventListener("focus", () => { const b = node.getBoundingClientRect(); show(b.right, b.top); });
+  node.addEventListener("blur", () => { tip.hidden = true; });
+}
+
+function niceStep(max, target) {
+  const steps = [1, 2, 5, 10, 20, 25, 50, 100, 250, 500, 1e3, 2.5e3, 5e3, 1e4, 2.5e4, 5e4, 1e5, 2.5e5, 5e5, 1e6, 2e6, 2.5e6, 5e6, 1e7];
+  return steps.find(s => max / s <= target) || steps[steps.length - 1];
+}
+
+function data() { return state.ch === "All" ? TRADES : TRADES.filter(t => t.ch === state.ch); }
+
+function byPolitician(rows) {
+  const m = new Map();
+  for (const t of rows) {
+    if (!m.has(t.pol)) m.set(t.pol, { pol: t.pol, party: t.party, ch: t.ch, seat: seatLabel(t), n: 0, buy: 0, sell: 0, buyLo: 0, buyHi: 0, sellLo: 0, sellHi: 0, trades: [] });
+    const p = m.get(t.pol);
+    p.n++; p.trades.push(t);
+    if (t.side === "Buy") { p.buy++; p.buyLo += t.lo; p.buyHi += t.hi; }
+    else if (t.side === "Sell") { p.sell++; p.sellLo += t.lo; p.sellHi += t.hi; }
+  }
+  return [...m.values()].sort((a, b) => b.n - a.n || a.pol.localeCompare(b.pol));
+}
+
+// ---------- KPIs ----------
+function renderKpis(rows) {
+  const pols = byPolitician(rows);
+  const reports = new Set(rows.map(t => t.url)).size;
+  const lo = rows.reduce((s, t) => s + t.lo, 0), hi = rows.reduce((s, t) => s + t.hi, 0);
+  const buys = rows.filter(t => t.side === "Buy").length, sells = rows.filter(t => t.side === "Sell").length;
+  const tickers = new Set(rows.filter(t => t.ticker).map(t => t.ticker)).size;
+  const house = pols.filter(p => p.ch === "House").length, senate = pols.length - house;
+  const stocks = rows.filter(t => ["ST", "Stock"].includes(t.atype)).length;
+  const bonds = rows.filter(t => ["GS", "CS", "Corporate Bond", "Municipal Security"].includes(t.atype)).length;
+  const other = rows.length - stocks - bonds;
+  const filed = rows.map(t => t.fdate).sort();
+  const tiles = [
+    ["Trades disclosed", rows.length, `${plural(buys, "buy")}, ${plural(sells, "sell")}`],
+    ["Politicians", pols.length, `${house} House, ${senate} Senate`],
+    ["Reports", reports, filed.length ? `filed ${fmtDay(filed[0])} to ${fmtDay(filed[filed.length - 1])}` : ""],
+    ["Disclosed value", range(lo, hi), "sum of the reported brackets"],
+    ["Tickers", tickers, `${plural(stocks, "stock")}, ${plural(bonds, "bond")}, ${other} other`],
+  ];
+  const box = $("#kpis");
+  box.replaceChildren();
+  for (const [l, v, s] of tiles) {
+    const d = document.createElement("div"); d.className = "kpi";
+    for (const [cls, content] of [["l", l], ["v", v], ["s", s]]) {
+      const e = document.createElement("div"); e.className = cls; e.textContent = content; d.appendChild(e);
+    }
+    box.appendChild(d);
+  }
+}
+
+// ---------- trades per politician ----------
+function renderWho(rows) {
+  const pols = byPolitician(rows);
+  const rowH = 38, top = 4;
+  const { svg, width } = svgIn("c-who", top + pols.length * rowH + 4, "Trades per politician, buys and sells");
+  const labelW = Math.min(230, width * 0.36), right = 44;
+  const plotW = width - labelW - right;
+  const max = Math.max(1, ...pols.map(p => p.n));
+  const sx = v => (v / max) * plotW;
+  el("line", { x1: labelW, x2: labelW, y1: 0, y2: top + pols.length * rowH, class: "baseline" }, svg);
+  pols.forEach((p, i) => {
+    const y = top + i * rowH;
+    txt(svg, 0, y + 15, p.pol, "t-head");
+    txt(svg, 0, y + 30, `${p.party} · ${p.seat} · ${p.ch}`, "t-muted");
+    const bh = 16, by = y + 11;
+    const wb = sx(p.buy), ws = sx(p.sell), gap = p.buy && p.sell ? 2 : 0;
+    if (p.buy) {
+      const a = el("path", { d: hbar(labelW, by, Math.max(wb - gap, 1), bh, false, !p.sell), style: "fill:var(--buy)" }, svg);
+      bindTip(a, plural(p.buy, "buy"), [p.pol, `${plural(p.n, "trade")} in total`], color("buy"));
+    }
+    if (p.sell) {
+      const b = el("path", { d: hbar(labelW + wb, by, Math.max(ws, 1), bh, false, true), style: "fill:var(--sell)" }, svg);
+      bindTip(b, plural(p.sell, "sell"), [p.pol, `${plural(p.n, "trade")} in total`], color("sell"));
+    }
+    txt(svg, labelW + wb + ws + 8, by + 12.5, p.n, "t-body t-num");
+  });
+}
+
+// ---------- share of trades ----------
+function renderShare(rows) {
+  const pols = byPolitician(rows);
+  const total = rows.length || 1;
+  const top = pols.slice(0, 2), rest = pols.slice(2);
+  const topN = top.reduce((s, p) => s + p.n, 0);
+  const stat = $("#share-stat");
+  stat.replaceChildren();
+  if (pols.length > 2) {
+    const b = document.createElement("b"); b.textContent = Math.round(topN / total * 100) + "%";
+    stat.append(b, document.createTextNode(` of the trades came from ${shortName(top[0].pol)} and ${shortName(top[1].pol)}.`));
+  } else {
+    stat.textContent = `${plural(pols.length, "politician")} filed every trade in this slice.`;
+  }
+  const segs = [...top.map((p, i) => ({ label: p.pol, n: p.n, fill: "var(--mark)" }))];
+  if (rest.length) segs.push({ label: `${plural(rest.length, "other politician")}`, n: rest.reduce((s, p) => s + p.n, 0), fill: "var(--rest)" });
+  const legendH = segs.length * 40;
+  const { svg, width } = svgIn("c-share", 34 + legendH, "Share of trades by politician");
+  let x = 0;
+  segs.forEach((s, i) => {
+    const w = s.n / total * width, last = i === segs.length - 1;
+    const node = el("path", { d: hbar(x, 0, Math.max(w - (last ? 0 : 2), 1), 22, i === 0, last), style: `fill:${s.fill}` }, svg);
+    bindTip(node, `${plural(s.n, "trade")} · ${Math.round(s.n / total * 100)}%`, s.label, s.fill);
+    x += w;
+    const ly = 44 + i * 40;
+    el("rect", { x: 0, y: ly - 1, width: 10, height: 10, rx: 2, style: `fill:${s.fill}` }, svg);
+    txt(svg, 18, ly + 8, s.label, "t-head");
+    txt(svg, 18, ly + 24, `${plural(s.n, "trade")}`, "t-muted");
+    txt(svg, width, ly + 8, Math.round(s.n / total * 100) + "%", "t-head t-num", "end");
+  });
+}
+
+// ---------- calendar ----------
+function renderCalendar(rows) {
+  const pols = byPolitician(rows);
+  const rowH = 34, axisH = 26;
+  const { svg, width } = svgIn("c-cal", axisH + pols.length * rowH + 6, "Trade dates and filing dates by politician");
+  const labelW = Math.min(170, width * 0.24), right = 16;
+  const dates = rows.flatMap(t => [t.tdate, t.fdate]).sort();
+  if (!dates.length) return;
+  const d0 = day(dates[0]); d0.setUTCDate(d0.getUTCDate() - 2);
+  const d1 = day(dates[dates.length - 1]); d1.setUTCDate(d1.getUTCDate() + 2);
+  const span = (d1 - d0) / 864e5;
+  const sx = s => labelW + ((day(s) - d0) / 864e5) / span * (width - labelW - right);
+
+  // weekly gridlines on Mondays
+  const g = new Date(d0);
+  while (g.getUTCDay() !== 1) g.setUTCDate(g.getUTCDate() + 1);
+  for (; g <= d1; g.setUTCDate(g.getUTCDate() + 7)) {
+    const iso = g.toISOString().slice(0, 10), x = sx(iso);
+    el("line", { x1: x, x2: x, y1: axisH - 6, y2: axisH + pols.length * rowH, class: "gridline" }, svg);
+    txt(svg, x, 12, fmtDay(iso), "t-muted", "middle");
+  }
+
+  pols.forEach((p, i) => {
+    const cy = axisH + i * rowH + rowH / 2;
+    txt(svg, 0, cy - 2, p.pol, "t-head");
+    txt(svg, 0, cy + 12, `${p.party} · ${p.seat}`, "t-muted");
+    el("line", { x1: labelW, x2: width - right, y1: cy, y2: cy, class: "gridline" }, svg);
+
+    // one filing tick per report, with a lag line from the earliest trade in it
+    const reports = new Map();
+    p.trades.forEach(t => { const r = reports.get(t.url) || { fdate: t.fdate, dates: [], n: 0, lags: [] }; r.dates.push(t.tdate); r.n++; r.lags.push(t.lag); reports.set(t.url, r); });
+
+    for (const r of reports.values()) {
+      const first = r.dates.sort()[0];
+      el("line", { x1: sx(first), x2: sx(r.fdate), y1: cy, y2: cy, style: "stroke:var(--muted);stroke-opacity:.55;stroke-width:1.5" }, svg);
+    }
+
+    // aggregate dots by date and side
+    const agg = new Map();
+    p.trades.forEach(t => {
+      if (t.side === "Exchange") return;
+      const k = t.tdate + "|" + t.side;
+      const a = agg.get(k) || { date: t.tdate, side: t.side, n: 0, lo: 0, hi: 0 };
+      a.n++; a.lo += t.lo; a.hi += t.hi; agg.set(k, a);
+    });
+    const both = new Set();
+    for (const a of agg.values()) if (agg.has(a.date + "|Buy") && agg.has(a.date + "|Sell")) both.add(a.date);
+    [...agg.values()].sort((a, b) => b.n - a.n).forEach(a => {
+      const r = Math.min(13, 4 + 2.1 * Math.sqrt(a.n - 1));
+      const off = both.has(a.date) ? (a.side === "Buy" ? -4 : 4) : 0;
+      const c = el("circle", { cx: sx(a.date), cy: cy + off, r, style: `fill:var(--${a.side === "Buy" ? "buy" : "sell"});stroke:var(--panel);stroke-width:2` }, svg);
+      bindTip(c, `${plural(a.n, a.side.toLowerCase())} · ${range(a.lo, a.hi)}`, [`${p.pol}, ${fmtDay(a.date)}`], color(a.side === "Buy" ? "buy" : "sell"));
+    });
+
+    for (const r of reports.values()) {
+      const x = sx(r.fdate);
+      const tick = el("rect", { x: x - 1.5, y: cy - 10, width: 3, height: 20, rx: 1, style: "fill:var(--head)" }, svg);
+      const lags = r.lags.sort((a, b) => a - b);
+      bindTip(tick, `Filed ${fmtDay(r.fdate)}`, [p.pol, `${plural(r.n, "trade")}, ${lags[0]} to ${lags[lags.length - 1]} days after the trade`]);
+    }
+  });
+}
+
+// ---------- disclosed value ----------
+function renderValue(rows) {
+  const pols = byPolitician(rows).sort((a, b) => (b.buyHi + b.sellHi) - (a.buyHi + a.sellHi));
+  const rowH = 46, top = 22, axisH = 22;
+  const { svg, width } = svgIn("c-value", top + pols.length * rowH + axisH, "Disclosed value sold and bought per politician");
+  const labelW = Math.min(250, width * 0.4), pad = 8;
+  const plotW = width - labelW - pad;
+  const cx = labelW + plotW / 2;
+  const max = Math.max(1, ...pols.map(p => Math.max(p.buyHi, p.sellHi)));
+  const step = niceStep(max, 3);
+  const lim = Math.ceil(max / step) * step;
+  const sx = v => (v / lim) * (plotW / 2);
+
+  for (let v = -lim; v <= lim; v += step) {
+    const x = cx + sx(v);
+    el("line", { x1: x, x2: x, y1: top - 6, y2: top + pols.length * rowH, class: v === 0 ? "baseline" : "gridline" }, svg);
+    txt(svg, x, top + pols.length * rowH + 16, v === 0 ? "$0" : money(Math.abs(v)), "t-muted t-num", "middle");
+  }
+  txt(svg, cx - 8, 10, "← Sold", "t-muted", "end");
+  txt(svg, cx + 8, 10, "Bought →", "t-muted");
+
+  pols.forEach((p, i) => {
+    const y = top + i * rowH, bh = 14, by = y + 8;
+    txt(svg, 0, y + 17, p.pol, "t-head");
+    const bits = [];
+    if (p.sell) bits.push(`sold ${range(p.sellLo, p.sellHi)}`);
+    if (p.buy) bits.push(`bought ${range(p.buyLo, p.buyHi)}`);
+    txt(svg, 0, y + 33, bits.join(" · "), "t-muted");
+
+    if (p.sell) {
+      const wl = sx(p.sellLo), wh = sx(p.sellHi);
+      const f = el("path", { d: hbar(cx - wh, by, Math.max(wh - wl - 2, 1), bh, true, false), style: "fill:var(--sell);fill-opacity:.38" }, svg);
+      const s = el("path", { d: hbar(cx - wl, by, Math.max(wl, 1), bh, true, false), style: "fill:var(--sell)" }, svg);
+      [f, s].forEach(n => bindTip(n, `Sold ${range(p.sellLo, p.sellHi)}`, [p.pol, plural(p.sell, "sale")], color("sell")));
+    }
+    if (p.buy) {
+      const wl = sx(p.buyLo), wh = sx(p.buyHi);
+      const s = el("path", { d: hbar(cx, by, Math.max(wl, 1), bh, false, true), style: "fill:var(--buy)" }, svg);
+      const f = el("path", { d: hbar(cx + wl + 2, by, Math.max(wh - wl - 2, 1), bh, false, true), style: "fill:var(--buy);fill-opacity:.38" }, svg);
+      [f, s].forEach(n => bindTip(n, `Bought ${range(p.buyLo, p.buyHi)}`, [p.pol, plural(p.buy, "purchase")], color("buy")));
+    }
+  });
+}
+
+// ---------- brackets ----------
+const BRACKETS = [
+  [1001, 15000, "$1K", "–$15K"], [15001, 50000, "$15K", "–$50K"], [50001, 100000, "$50K", "–$100K"],
+  [100001, 250000, "$100K", "–$250K"], [250001, 500000, "$250K", "–$500K"], [500001, 1000000, "$500K", "–$1M"],
+  [1000001, 5000000, "$1M", "–$5M"],
+];
+function renderBrackets(rows) {
+  const counts = BRACKETS.map(b => rows.filter(t => t.lo === b[0]).length);
+  const plotH = 190, top = 18, axisH = 36;
+  const { svg, width } = svgIn("c-brackets", top + plotH + axisH, "Trades by amount bracket");
+  const max = Math.max(1, ...counts), step = niceStep(max, 4), lim = Math.ceil(max / step) * step;
+  const sy = v => top + plotH - (v / lim) * plotH;
+  const left = 30, band = (width - left) / BRACKETS.length, bw = Math.min(24, band * 0.6);
+  for (let v = 0; v <= lim; v += step) {
+    el("line", { x1: left, x2: width, y1: sy(v), y2: sy(v), class: v === 0 ? "baseline" : "gridline" }, svg);
+    txt(svg, left - 6, sy(v) + 4, v, "t-muted t-num", "end");
+  }
+  BRACKETS.forEach((b, i) => {
+    const x = left + i * band + (band - bw) / 2, h = (counts[i] / lim) * plotH;
+    if (counts[i]) {
+      const n = el("path", { d: vbar(x, sy(counts[i]), bw, h), style: "fill:var(--mark)" }, svg);
+      bindTip(n, plural(counts[i], "trade"), `${b[2]}${b[3]} bracket`, color("mark"));
+      txt(svg, x + bw / 2, sy(counts[i]) - 6, counts[i], "t-body t-num", "middle");
+    }
+    txt(svg, x + bw / 2, top + plotH + 15, b[2], "t-muted", "middle");
+    txt(svg, x + bw / 2, top + plotH + 28, b[3], "t-muted", "middle");
+  });
+}
+
+// ---------- lag histogram ----------
+function renderLag(rows) {
+  const maxLag = Math.max(0, ...rows.map(t => t.lag));
+  const domain = Math.max(60, Math.ceil((maxLag + 1) / 5) * 5);
+  const bins = Array.from({ length: domain / 5 }, (_, i) => ({ from: i * 5, n: 0 }));
+  rows.forEach(t => { bins[Math.min(bins.length - 1, Math.floor(t.lag / 5))].n++; });
+  const plotH = 190, top = 26, axisH = 24;
+  const { svg, width } = svgIn("c-lag", top + plotH + axisH, "Trades by days between trade and filing");
+  const left = 30, right = 8, plotW = width - left - right;
+  const max = Math.max(1, ...bins.map(b => b.n)), step = niceStep(max, 4), lim = Math.ceil(max / step) * step;
+  const sx = d => left + (d / domain) * plotW, sy = v => top + plotH - (v / lim) * plotH;
+  for (let v = 0; v <= lim; v += step) {
+    el("line", { x1: left, x2: width - right, y1: sy(v), y2: sy(v), class: v === 0 ? "baseline" : "gridline" }, svg);
+    txt(svg, left - 6, sy(v) + 4, v, "t-muted t-num", "end");
+  }
+  for (let d = 0; d <= domain; d += 10) txt(svg, sx(d), top + plotH + 16, d + (d === domain ? " days" : ""), "t-muted t-num", d === domain ? "end" : "middle");
+  const bw = (plotW / bins.length) - 2;
+  bins.forEach(b => {
+    if (!b.n) return;
+    const late = b.from >= 45;
+    const n = el("path", { d: vbar(sx(b.from) + 1, sy(b.n), bw, (b.n / lim) * plotH), style: `fill:var(--${late ? "limit" : "mark"})` }, svg);
+    bindTip(n, plural(b.n, "trade"), `filed ${b.from} to ${b.from + 4} days after the trade`, color(late ? "limit" : "mark"));
+  });
+  const lx = sx(45);
+  el("line", { x1: lx, x2: lx, y1: top - 14, y2: top + plotH, style: "stroke:var(--limit);stroke-width:2" }, svg);
+  txt(svg, lx - 6, top - 4, "45-day limit", "t-body", "end");
+  const lags = rows.map(t => t.lag).sort((a, b) => a - b);
+  if (lags.length) {
+    const med = lags[Math.floor((lags.length - 1) / 2)];
+    const late = lags.filter(l => l > 45).length;
+    txt(svg, left + 4, top - 4, `Median ${med} days · ${late ? plural(late, "late trade") : "none late"}`, "t-muted");
+  }
+}
+
+// ---------- owners ----------
+function renderOwner(rows) {
+  const order = ["Self", "Spouse", "Joint", "Dependent Child"];
+  const names = { Self: "The member", Spouse: "Spouse (SP)", Joint: "Joint account (JT)", "Dependent Child": "Dependent child (DC)" };
+  const counts = order.map(o => ({ o, n: rows.filter(t => t.owner === o).length }));
+  const total = rows.length || 1, rowH = 44;
+  const { svg, width } = svgIn("c-owner", counts.length * rowH, "Trades by account owner");
+  const labelW = Math.min(170, width * 0.38), right = 86, plotW = width - labelW - right;
+  const max = Math.max(1, ...counts.map(c => c.n));
+  el("line", { x1: labelW, x2: labelW, y1: 0, y2: counts.length * rowH, class: "baseline" }, svg);
+  counts.forEach((c, i) => {
+    const y = i * rowH, by = y + 14;
+    txt(svg, 0, by + 12, names[c.o], "t-head");
+    const w = (c.n / max) * plotW;
+    if (c.n) {
+      const n = el("path", { d: hbar(labelW, by, Math.max(w, 1), 16, false, true), style: "fill:var(--mark)" }, svg);
+      bindTip(n, plural(c.n, "trade"), `${names[c.o]}, ${Math.round(c.n / total * 100)}% of trades`, color("mark"));
+    }
+    txt(svg, labelW + w + 8, by + 12.5, `${c.n} · ${Math.round(c.n / total * 100)}%`, "t-body t-num");
+  });
+}
+
+// ---------- tickers ----------
+function tickerGroups(rows) {
+  const m = new Map();
+  rows.filter(t => t.ticker).forEach(t => {
+    const g = m.get(t.ticker) || { ticker: t.ticker, asset: t.asset, n: 0, lo: 0, hi: 0, pols: new Set(), trades: [] };
+    g.n++; g.lo += t.lo; g.hi += t.hi; g.pols.add(t.pol); g.trades.push(t); m.set(t.ticker, g);
+  });
+  return [...m.values()];
+}
+function renderTickers(rows) {
+  const groups = tickerGroups(rows).sort((a, b) => b.hi - a.hi || b.lo - a.lo).slice(0, 10);
+  const rowH = 36, axisH = 22;
+  const { svg, width } = svgIn("c-tickers", groups.length * rowH + axisH, "Top tickers by disclosed value");
+  const labelW = Math.min(200, width * 0.34), right = 96, plotW = width - labelW - right;
+  const max = Math.max(1, ...groups.map(g => g.hi)), step = niceStep(max, 4), lim = Math.ceil(max / step) * step;
+  const sx = v => (v / lim) * plotW;
+  for (let v = 0; v <= lim; v += step) {
+    const x = labelW + sx(v);
+    el("line", { x1: x, x2: x, y1: 0, y2: groups.length * rowH, class: v === 0 ? "baseline" : "gridline" }, svg);
+    txt(svg, x, groups.length * rowH + 16, money(v), "t-muted t-num", "middle");
+  }
+  groups.forEach((g, i) => {
+    const y = i * rowH, by = y + 10;
+    txt(svg, 0, y + 15, g.ticker, "t-head t-num");
+    const asset = g.asset.replace(/\s*\([A-Z.\-]+\)\s*$/, "");
+    txt(svg, 0, y + 29, asset.length > 30 ? asset.slice(0, 29) + "…" : asset, "t-muted");
+    const wl = sx(g.lo), wh = sx(g.hi);
+    const s = el("path", { d: hbar(labelW, by, Math.max(wl, 1), 16, false, wh - wl < 3), style: "fill:var(--mark)" }, svg);
+    const f = el("path", { d: hbar(labelW + wl + 2, by, Math.max(wh - wl - 2, 1), 16, false, true), style: "fill:var(--mark);fill-opacity:.38" }, svg);
+    const who = [...g.pols].map(shortName).join(", ");
+    [s, f].forEach(n => bindTip(n, range(g.lo, g.hi), [`${g.ticker}: ${plural(g.n, "trade")}`, who], color("mark")));
+    txt(svg, labelW + wh + 8, by + 12.5, range(g.lo, g.hi), "t-body t-num");
+  });
+}
+
+function renderShared(rows) {
+  const box = $("#c-shared");
+  box.replaceChildren();
+  const shared = tickerGroups(rows).filter(g => g.pols.size > 1).sort((a, b) => b.pols.size - a.pols.size || b.hi - a.hi);
+  if (!shared.length) {
+    const p = document.createElement("p"); p.className = "empty";
+    p.textContent = "No ticker was traded by more than one politician in this slice.";
+    box.appendChild(p); return;
+  }
+  shared.forEach(g => {
+    const row = document.createElement("div"); row.className = "tk";
+    const sym = document.createElement("div"); sym.className = "sym"; sym.textContent = g.ticker;
+    const who = document.createElement("div"); who.className = "who";
+    g.trades.sort((a, b) => a.tdate.localeCompare(b.tdate)).forEach(t => {
+      const line = document.createElement("div");
+      const m = document.createElement("span"); m.className = "m";
+      m.textContent = ` · ${t.partial ? "partial sale" : t.side.toLowerCase()} · ${range(t.lo, t.hi)} · ${fmtDay(t.tdate)}`;
+      line.append(document.createTextNode(`${t.pol}`), m);
+      who.appendChild(line);
+    });
+    row.append(sym, who);
+    box.appendChild(row);
+  });
+}
+
+// ---------- table ----------
+const COLS = [
+  ["fdate", "Filed"], ["pol", "Politician"], ["ch", "Chamber"], ["ticker", "Ticker"], ["asset", "Asset"],
+  ["side", "Trade"], ["lo", "Amount"], ["tdate", "Traded"], ["lag", "Days"], ["owner", "Owner"], ["url", "Report"],
+];
+function renderHead() {
+  const tr = $("#thead"); tr.replaceChildren();
+  COLS.forEach(([key, label]) => {
+    const th = document.createElement("th"); th.scope = "col";
+    if (key === "url") { th.textContent = label; th.style.padding = "9px 10px"; tr.appendChild(th); return; }
+    const b = document.createElement("button"); b.type = "button"; b.textContent = label;
+    if (state.sort.key === key) b.dataset.dir = state.sort.dir;
+    b.addEventListener("click", () => {
+      state.sort = { key, dir: state.sort.key === key && state.sort.dir === "desc" ? "asc" : "desc" };
+      renderHead(); renderTable(data());
+    });
+    th.appendChild(b); tr.appendChild(th);
+  });
+}
+function renderTable(rows) {
+  const q = state.q.trim().toLowerCase();
+  let list = q ? rows.filter(t => `${t.pol} ${t.ticker} ${t.asset}`.toLowerCase().includes(q)) : rows.slice();
+  const { key, dir } = state.sort;
+  list.sort((a, b) => {
+    const x = a[key], y = b[key];
+    const c = typeof x === "number" ? x - y : String(x).localeCompare(String(y));
+    return (dir === "asc" ? c : -c) || a.pol.localeCompare(b.pol);
+  });
+  $("#count").textContent = `${plural(list.length, "trade")} shown`;
+  const body = $("#tbody"); body.replaceChildren();
+  const frag = document.createDocumentFragment();
+  list.forEach(t => {
+    const tr = document.createElement("tr");
+    const cell = (content, cls) => { const td = document.createElement("td"); if (cls) td.className = cls; if (content instanceof Node) td.appendChild(content); else td.textContent = content; tr.appendChild(td); };
+    cell(fmtDay(t.fdate), "num");
+    cell(`${t.pol} (${t.party})`);
+    cell(t.ch);
+    cell(t.ticker || "—", "num");
+    cell(t.asset, "asset");
+    const pill = document.createElement("span"); pill.className = "pill";
+    const dot = document.createElement("i"); dot.style.background = t.side === "Buy" ? "var(--buy)" : t.side === "Sell" ? "var(--sell)" : "var(--muted)";
+    pill.append(dot, document.createTextNode(t.partial ? "Partial sale" : t.side));
+    cell(pill);
+    cell(range(t.lo, t.hi), "num");
+    cell(fmtDay(t.tdate), "num");
+    cell(t.lag, "num");
+    cell(t.owner);
+    const a = document.createElement("a"); a.href = t.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = t.ch === "House" ? "PDF" : "eFD";
+    cell(a);
+    frag.appendChild(tr);
+  });
+  body.appendChild(frag);
+}
+
+// ---------- wiring ----------
+function renderAll() {
+  const rows = data();
+  renderKpis(rows); renderWho(rows); renderShare(rows); renderCalendar(rows); renderValue(rows);
+  renderBrackets(rows); renderLag(rows); renderOwner(rows); renderTickers(rows); renderShared(rows); renderTable(rows);
+}
+document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
+  state.ch = b.dataset.ch;
+  document.querySelectorAll(".seg button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  tip.hidden = true;
+  renderAll();
+}));
+$("#q").addEventListener("input", e => { state.q = e.target.value; renderTable(data()); });
+let lastW = innerWidth, timer;
+addEventListener("resize", () => { clearTimeout(timer); timer = setTimeout(() => { if (innerWidth !== lastW) { lastW = innerWidth; renderAll(); } }, 150); });
+renderHead();
+renderAll();
+</script>
